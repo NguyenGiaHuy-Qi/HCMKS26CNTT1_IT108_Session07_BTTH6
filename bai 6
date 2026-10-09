@@ -1,0 +1,97 @@
+# BÀI TẬP SESSION 06 – EX06
+## KIỂM TRA LOG VÀ THẨM ĐỊNH MÃ AI BẰNG POWERSHELL
+
+### PHẦN 1. PHÂN TÍCH LỖI VÀ THẨM ĐỊNH MÃ AI
+
+**1. Đoạn mã AI đưa ra**
+
+```powershell
+Remove-Item -Path "C:\*" -Recurse -Force
+```
+
+**2. Những rủi ro của đoạn mã**
+
+Đoạn lệnh trên có thể gây nguy hiểm cho máy tính vì:
+
+- `Remove-Item`: Dùng để xóa tệp hoặc thư mục.
+- `-Path "C:\*"`: Chỉ định tất cả mục phù hợp với ký tự đại diện `*` tại thư mục gốc ổ C:.
+- `-Recurse`: Xóa đệ quy cả các thư mục con và nội dung bên trong.
+- `-Force`: Cố gắng xóa cả những mục được bảo vệ bởi một số thuộc tính thông thường.
+
+Nếu thực thi lệnh này, nhiều dữ liệu quan trọng, phần mềm và tệp hệ thống trên ổ C: có thể bị xóa, khiến Windows hoạt động không ổn định hoặc không thể khởi động. Một số mục có thể không xóa được do quyền truy cập hoặc cơ chế bảo vệ của hệ thống, nhưng điều đó không làm cho lệnh trở nên an toàn.
+
+Ngoài ra, xóa tệp trên ổ đĩa không phải cách phù hợp để giải phóng RAM vì RAM là bộ nhớ đang được sử dụng để chạy chương trình.
+
+**3. Áp dụng 3 nguyên tắc vàng thẩm định mã AI**
+
+- **Nguyên tắc 1 – Đọc hiểu mã trước khi chạy:** Phải hiểu chức năng của từng cmdlet và tham số. Nhận ra `Remove-Item` là lệnh xóa dữ liệu và `-Recurse -Force` có thể khiến thao tác xóa diễn ra trên phạm vi rất lớn.
+- **Nguyên tắc 2 – Kiểm tra phạm vi tác động:** Xác minh đường dẫn và đối tượng mà lệnh sẽ tác động đến. Trong trường hợp này, `C:\*` bao phủ nhiều mục tại ổ hệ thống, không giới hạn trong thư mục chứa lịch sử tưới nước.
+- **Nguyên tắc 3 – Thử nghiệm an toàn trước khi thực thi:** Không chạy ngay lệnh có nguy cơ phá hủy dữ liệu. Cần kiểm tra trên dữ liệu mẫu, dùng chế độ xem trước như `-WhatIf` khi cmdlet hỗ trợ, đồng thời sao lưu dữ liệu quan trọng trước khi thực hiện thao tác xóa.
+
+Kết luận: Không thực thi đoạn mã AI đã cho. Bài toán chỉ yêu cầu đọc và lọc lịch sử tưới nước nên không cần sử dụng lệnh xóa dữ liệu.
+
+### PHẦN 2. TRIỂN KHAI SCRIPT POWERSHELL AN TOÀN
+
+**1. Mục đích**
+
+Viết script để đọc file `water_log.txt`, lọc các dòng chứa từ khóa `WARNING`, xuất kết quả ra file `incident.txt` và hiển thị thông báo hoàn thành trên màn hình.
+
+**2. Mã nguồn file `safe_water_report.ps1`**
+
+```powershell
+# Kiem tra lich su tuoi nuoc
+# Loc cac dong WARNING va luu vao incident.txt
+
+$logFile = ".\water_log.txt"
+$outputFile = ".\incident.txt"
+
+# Kiem tra file log co ton tai khong
+if (Test-Path $logFile) {
+
+    # Loc cac dong co chu WARNING
+    $warnings = Select-String -Path $logFile -Pattern "WARNING"
+
+    # Xuat ket qua ra file bao cao
+    $warnings | ForEach-Object { $_.Line } |
+        Out-File -FilePath $outputFile -Encoding utf8
+
+    Write-Host "Hoan thanh" -ForegroundColor Green
+}
+else {
+    Write-Host "Khong tim thay file water_log.txt" -ForegroundColor Red
+}
+```
+
+**3. Giải thích các lệnh**
+
+- `Test-Path`: Kiểm tra xem file `water_log.txt` có tồn tại hay không.
+- `Select-String`: Tìm các dòng có chứa từ khóa `WARNING`.
+- `ForEach-Object { $_.Line }`: Lấy phần nội dung của từng dòng tìm được.
+- `Out-File`: Ghi kết quả lọc vào file `incident.txt`. Lệnh này tạo file nếu chưa có và ghi đè nội dung cũ nếu file đã tồn tại.
+- `Write-Host`: Hiển thị thông báo `Hoan thanh` bằng màu xanh khi xử lý thành công.
+
+Script không thực hiện bất kỳ thao tác xóa dữ liệu nào. Nếu không tìm thấy dòng `WARNING`, file báo cáo sẽ được tạo hoặc làm trống.
+
+### PHẦN 3. CÁCH CHẠY SCRIPT
+
+Bước 1: Tạo thư mục dự án, ví dụ `D:\Session06_Ex06`.
+
+Bước 2: Đặt hai file sau trong cùng thư mục:
+
+```text
+Session06_Ex06/
+├── safe_water_report.ps1
+└── water_log.txt
+```
+
+Bước 3: Mở PowerShell tại thư mục dự án và chạy:
+
+```powershell
+.\safe_water_report.ps1
+```
+
+Sau khi chạy, nếu file log tồn tại, chương trình sẽ tạo file `incident.txt` chứa các dòng có từ khóa `WARNING`.
+
+### PHẦN 4. KẾT LUẬN
+
+Qua bài tập này, em hiểu rằng cần thẩm định mã do AI tạo ra trước khi thực thi, đặc biệt với các lệnh có khả năng xóa dữ liệu. Đồng thời, em biết cách kết hợp `Select-String`, `Out-File`, `Test-Path` và `Write-Host` để xây dựng một script PowerShell đơn giản, an toàn và phù hợp với yêu cầu.
